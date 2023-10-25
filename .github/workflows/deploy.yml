@@ -1,0 +1,44 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: Build
+        run: go build -o apartments-api
+
+      - name: Build Docker image
+        run: docker build -t apartments-api .
+
+      - name: Push Docker image to GitHub Container Registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+          docker tag apartments-api docker.pkg.github.com/${{ github.repository }}/apartments-api:latest
+          docker push docker.pkg.github.com/${{ github.repository }}/apartments-api:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy to DigitalOcean
+        run: |
+          ssh-keyscan your-droplet-ip >> $HOME/.ssh/hakimino.pub
+          ssh -i /path/to/your/private/key -o StrictHostKeyChecking=no root@your-droplet-ip "docker pull Fdocker.pkg.github.com/${{ github.repository }}/apartments-api:latest && docker stop apartments-api && docker rm apartments-api && docker run -d --name apartments-api -p 80:80 docker.pkg.github.com/${{ github.repository }}/apartments-api:latest"
