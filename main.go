@@ -15,7 +15,7 @@ func main() {
 	location := app.Party("/brick-api/location")
 	{
 		location.Get("/autocomplete", routes.Autocomplete)
-		location.Get("/search")
+		location.Get("/search", routes.Search)
 	}
 
 	app.Listen(":4000")
